@@ -29,3 +29,6 @@ class TwoPointLink: # Pushrod, TieRod
         self.link_force_x = None
         self.link_force_y = None
         self.link_force_z = None
+
+
+aaaaaaaaa=7
