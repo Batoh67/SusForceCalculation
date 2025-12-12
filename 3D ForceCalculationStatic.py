@@ -218,51 +218,37 @@ class SuspensionGeometry:
 
         frontend_line_number, rearend_line_number = self._find_suspension_line_numbers()
 
-        # Parse lower wishbone joints
-        lower_front_joint = self._parse_joint_from_line(frontend_line_number + 1)
-        lower_rear_joint = self._parse_joint_from_line(frontend_line_number + 2)
-        lower_outer_joint = self._parse_joint_from_line(frontend_line_number + 3)
-        lower_wishbone = Wishbone(lower_front_joint, lower_rear_joint, lower_outer_joint)
+        def load_geometry(line_number):
 
-        # Parse upper wishbone joints
-        upper_front_joint = self._parse_joint_from_line(frontend_line_number + 4)
-        upper_rear_joint = self._parse_joint_from_line(frontend_line_number + 5)
-        upper_outer_joint = self._parse_joint_from_line(frontend_line_number + 6)
-        upper_wishbone = Wishbone(upper_front_joint, upper_rear_joint, upper_outer_joint)
+            # Parse lower wishbone joints
+            lower_front_joint = self._parse_joint_from_line(line_number + 1)
+            lower_rear_joint = self._parse_joint_from_line(line_number + 2)
+            lower_outer_joint = self._parse_joint_from_line(line_number + 3)
+            lower_wishbone = Wishbone(lower_front_joint, lower_rear_joint, lower_outer_joint)
 
-        lower_joint = self._parse_joint_from_line(frontend_line_number + 7)
-        upper_joint = self._parse_joint_from_line(frontend_line_number + 8)
-        pushrod = TwoPointLink(upper_joint, lower_joint)
+            # Parse upper wishbone joints
+            upper_front_joint = self._parse_joint_from_line(line_number + 4)
+            upper_rear_joint = self._parse_joint_from_line(line_number + 5)
+            upper_outer_joint = self._parse_joint_from_line(line_number + 6)
+            upper_wishbone = Wishbone(upper_front_joint, upper_rear_joint, upper_outer_joint)
 
-        outer_joint = self._parse_joint_from_line(frontend_line_number + 9)
-        inside_joint = self._parse_joint_from_line(frontend_line_number + 10)
-        tierod = TwoPointLink(inside_joint, outer_joint)
+            lower_joint = self._parse_joint_from_line(line_number + 7)
+            upper_joint = self._parse_joint_from_line(line_number + 8)
+            pushrod = TwoPointLink(upper_joint, lower_joint)
+
+            outer_joint = self._parse_joint_from_line(line_number + 9)
+            inside_joint = self._parse_joint_from_line(line_number + 10)
+            tierod = TwoPointLink(inside_joint, outer_joint)
+
+            return upper_wishbone, lower_wishbone, pushrod, tierod
+        # Build front suspension
+        geometry = load_geometry(frontend_line_number)
+        self.front = Front(*geometry, "Front")
+
 
         # Build front suspension
-        self.front = Front(upper_wishbone, lower_wishbone, pushrod, tierod, "Front")
-
-        # Parse lower wishbone joints
-        lower_front_joint = self._parse_joint_from_line(rearend_line_number + 1)
-        lower_rear_joint = self._parse_joint_from_line(rearend_line_number + 2)
-        lower_outer_joint = self._parse_joint_from_line(rearend_line_number + 3)
-        lower_wishbone = Wishbone(lower_front_joint, lower_rear_joint, upper_outer_joint)
-
-        # Parse upper wishbone joints
-        upper_front_joint = self._parse_joint_from_line(rearend_line_number + 4)
-        upper_rear_joint = self._parse_joint_from_line(rearend_line_number + 5)
-        upper_outer_joint = self._parse_joint_from_line(rearend_line_number + 6)
-        upper_wishbone = Wishbone(upper_front_joint, upper_rear_joint, upper_outer_joint)
-
-        lower_joint = self._parse_joint_from_line(rearend_line_number + 7)
-        upper_joint = self._parse_joint_from_line(rearend_line_number + 8)
-        pushrod = TwoPointLink(upper_joint, lower_joint)
-
-        outer_joint = self._parse_joint_from_line(rearend_line_number + 9)
-        inside_joint = self._parse_joint_from_line(rearend_line_number + 10)
-        tierod = TwoPointLink(inside_joint, outer_joint)
-
-        # Build front suspension
-        self.rear = Front(upper_wishbone, lower_wishbone, pushrod, tierod, "Rear")
+        geometry = load_geometry(rearend_line_number)
+        self.rear = Front(*geometry, "Rear")
 
     def _find_suspension_line_numbers(self):
         """Find line numbers for FRONT and REAR suspension sections."""
