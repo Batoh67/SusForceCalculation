@@ -23,7 +23,7 @@ class Joint:
 
 
 class TwoPointLink:  # Pushrod, TieRod
-    def __init__(self, inside_joint: Joint, outside_joint: Joint):
+    def __init__(self, outside_joint: Joint, inside_joint: Joint):
         self.inside_joint = inside_joint
         self.outside_joint = outside_joint
 
@@ -260,8 +260,8 @@ class SuspensionGeometry:
                 current += count
 
             # Build components
-            upper_wishbone = Wishbone(*joints["lower_wishbone"])
-            lower_wishbone = Wishbone(*joints["upper_wishbone"])
+            upper_wishbone = Wishbone(*joints["upper_wishbone"])
+            lower_wishbone = Wishbone(*joints["lower_wishbone"])
             pushrod = TwoPointLink(*joints["pushrod"])
             tierod = TwoPointLink(*joints["tierod"])
 
@@ -383,4 +383,5 @@ class StaticSuspensionForces:
 
 file_path = "C:/Users/pc/Downloads/HAFO24_v19_DECOUPLE_acc_steering (1).shk"
 suspension = SuspensionGeometry(file_path)
+StaticSuspensionForces()
 suspension.print_all_geometry()
