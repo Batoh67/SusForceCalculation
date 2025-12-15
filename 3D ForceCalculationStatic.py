@@ -220,27 +220,6 @@ class SuspensionGeometry:
 
         def load_geometry(start_line):
 
-            # # Parse lower wishbone joints
-            # lower_front_joint = self._parse_joint_from_line(line_number + 1)
-            # lower_rear_joint = self._parse_joint_from_line(line_number + 2)
-            # lower_outer_joint = self._parse_joint_from_line(line_number + 3)
-            # lower_wishbone = Wishbone(lower_front_joint, lower_rear_joint, lower_outer_joint)
-            #
-            # # Parse upper wishbone joints
-            # upper_front_joint = self._parse_joint_from_line(line_number + 4)
-            # upper_rear_joint = self._parse_joint_from_line(line_number + 5)
-            # upper_outer_joint = self._parse_joint_from_line(line_number + 6)
-            # upper_wishbone = Wishbone(upper_front_joint, upper_rear_joint, upper_outer_joint)
-            #
-            # lower_joint = self._parse_joint_from_line(line_number + 7)
-            # upper_joint = self._parse_joint_from_line(line_number + 8)
-            # pushrod = TwoPointLink(upper_joint, lower_joint)
-            #
-            # outer_joint = self._parse_joint_from_line(line_number + 9)
-            # inside_joint = self._parse_joint_from_line(line_number + 10)
-            # tierod = TwoPointLink(inside_joint, outer_joint)
-
-            # Number of joints each component needs
             LAYOUT = {
                 "lower_wishbone": 3,
                 "upper_wishbone": 3,
@@ -312,29 +291,44 @@ class SuspensionGeometry:
 
 class StaticSuspensionForces:
 
-    def __init__(self):
-        self.calculate_front_suspension_forces()
+    def __init__(self,front_contact_patch, front_contact_patch_force,
+                 rear_contact_patch, rear_contact_patch_force):
 
-    def calculate_front_suspension_forces(self):
+        self.front_contact_patch = front_contact_patch
+        self.front_contact_patch_force = front_contact_patch_force
+
+        self.calculate_suspension_forces(axle_obj = getattr(suspension, "front"),
+                                         contact_patch = self.front_contact_patch,
+                                         contact_patch_force = self.front_contact_patch_force)
+
+        self.rear_contact_patch = rear_contact_patch 
+        self.rear_contact_patch_force = rear_contact_patch_force
+
+        self.calculate_suspension_forces(axle_obj = getattr(suspension, "rear"),
+                                         contact_patch = self.rear_contact_patch,
+                                         contact_patch_force = self.rear_contact_patch_force)
+
+    def calculate_suspension_forces(self,axle_obj,contact_patch,contact_patch_force):
         # Front
-        contact_patch = np.array([0, 600, -200])
+        #contact_patch = np.array([0, 600, -200])
 
         # +x: points to the rear of vehicle | +y: points to the right of vehicle | +z: points upwards
-        contact_patch_force = np.array(
-            [[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4], [0, 1000, 0]])  # [0,-1560,1874]
+        #contact_patch_force = np.array(
+            #[[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4], [0, 1000, 0]])  # [0,-1560,1874]
 
-        suspension.front.upper_wishbone.build_unit_moment_vector()
-        suspension.front.lower_wishbone.build_unit_moment_vector()
-        suspension.front.pushrod.build_unit_moment_vector()
-        suspension.front.tierod.build_unit_moment_vector()
+
+        axle_obj.upper_wishbone.build_unit_moment_vector()
+        axle_obj.lower_wishbone.build_unit_moment_vector()
+        axle_obj.pushrod.build_unit_moment_vector()
+        axle_obj.tierod.build_unit_moment_vector()
 
         # Build base coefficient matrix (6x6)
-        A_base = np.stack((suspension.front.lower_wishbone.front_unit_moment_vector,
-                           suspension.front.lower_wishbone.rear_unit_moment_vector,
-                           suspension.front.upper_wishbone.front_unit_moment_vector,
-                           suspension.front.upper_wishbone.rear_unit_moment_vector,
-                           suspension.front.pushrod.unit_moment_vector,
-                           suspension.front.tierod.unit_moment_vector), axis=1)
+        A_base = np.stack((axle_obj.lower_wishbone.front_unit_moment_vector,
+                           axle_obj.lower_wishbone.rear_unit_moment_vector,
+                           axle_obj.upper_wishbone.front_unit_moment_vector,
+                           axle_obj.upper_wishbone.rear_unit_moment_vector,
+                           axle_obj.pushrod.unit_moment_vector,
+                           axle_obj.tierod.unit_moment_vector), axis=1)
 
         # Determine number of force cases from input
         n_cases = contact_patch_force.shape[0]
@@ -374,14 +368,25 @@ class StaticSuspensionForces:
         self.FOut = FOut.squeeze()
 
         def save_forces_to_members():
-            suspension.front.lower_wishbone.force(FOut[:, 0], FOut[:, 1])
-            suspension.front.upper_wishbone.force(FOut[:, 2], FOut[:, 3])
-            suspension.front.pushrod.force(FOut[:, 4])
-            suspension.front.tierod.force(FOut[:, 5])
+            axle_obj.lower_wishbone.force(FOut[:, 0], FOut[:, 1])
+            axle_obj.upper_wishbone.force(FOut[:, 2], FOut[:, 3])
+            axle_obj.pushrod.force(FOut[:, 4])
+            axle_obj.tierod.force(FOut[:, 5])
 
         save_forces_to_members()
 
 file_path = "C:/Users/pc/Downloads/HAFO24_v19_DECOUPLE_acc_steering (1).shk"
 suspension = SuspensionGeometry(file_path)
-StaticSuspensionForces()
+front_contact_patch = np.array([0, 600, -200])
+front_contact_patch_force = np.array(
+            [[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4], [0, 1000, 0]])  # [0,-1560,1874]
+
+rear_contact_patch = np.array([1530, 600, -200])
+rear_contact_patch_force = np.array(
+            [[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4], [0, 1000, 0]])
+
+StaticSuspensionForces(front_contact_patch, front_contact_patch_force,
+                 rear_contact_patch, rear_contact_patch_force)
+
 suspension.print_all_geometry()
+suspension.print_all_forces()
