@@ -27,29 +27,11 @@ class TwoPointLink:  # Pushrod, TieRod
         self.inside_joint = inside_joint
         self.outside_joint = outside_joint
 
-        self.unit_moment_vector = None
+        self.unit_moment_vector = unit_moment_vector(self.inside_joint, self.outside_joint)
 
         self.link_force = None
 
         self.comp_forces = None
-
-    def build_unit_moment_vector(self):
-        def unit_moment_vector(p1, p2):
-            p1 = np.array([p1.x, p1.y, p1.z])
-            p2 = np.array([p2.x, p2.y, p2.z])
-
-            vec = p2 - p1
-
-            magnitude = np.linalg.norm(vec)
-            unit_vec = vec / magnitude
-
-            r = p1
-            moment_vec = np.cross(r, unit_vec)
-
-            combined = np.hstack((unit_vec, moment_vec))
-            return combined
-
-        self.unit_moment_vector = unit_moment_vector(self.inside_joint, self.outside_joint)
 
     def print_joints(self, name: str = "TwoPointLink") -> None:
         """Print all joint coordinates."""
@@ -59,6 +41,9 @@ class TwoPointLink:  # Pushrod, TieRod
         print(f"  Unit Moment Vector: {self.unit_moment_vector}\n")
 
     def force(self, force):
+        if self.unit_moment_vector is None:
+            raise RuntimeError("Unit Moment Vector not built")
+
         self.link_force = force.squeeze()
 
         self.comp_forces = self.link_force[:, None] * self.unit_moment_vector[None, 0:3]
@@ -72,7 +57,6 @@ class TwoPointLink:  # Pushrod, TieRod
         print(f"Link Force Y {fy} [N]")
         print(f"Link Force Z {fz} [N]\n")
 
-
 class Wishbone:
     """Represents a wishbone with three joints."""
 
@@ -81,8 +65,8 @@ class Wishbone:
         self.rear_joint = rear_joint
         self.outer_joint = outer_joint
 
-        self.front_unit_moment_vector = None
-        self.rear_unit_moment_vector = None
+        self.front_unit_moment_vector = unit_moment_vector(self.front_joint, self.outer_joint)
+        self.rear_unit_moment_vector = unit_moment_vector(self.rear_joint, self.outer_joint)
 
         self.front_link_force = None
         self.rear_link_force = None
@@ -90,26 +74,11 @@ class Wishbone:
         self.front_comp_forces = None
         self.rear_comp_forces = None
 
-    def build_unit_moment_vector(self):
-        def unit_moment_vector(p1, p2):
-            p1 = np.array([p1.x, p1.y, p1.z])
-            p2 = np.array([p2.x, p2.y, p2.z])
-
-            vec = p2 - p1
-
-            magnitude = np.linalg.norm(vec)
-            unit_vec = vec / magnitude
-
-            r = p1
-            moment_vec = np.cross(r, unit_vec)
-
-            combined = np.hstack((unit_vec, moment_vec))
-            return combined
-
-        self.front_unit_moment_vector = unit_moment_vector(self.front_joint, self.outer_joint)
-        self.rear_unit_moment_vector = unit_moment_vector(self.rear_joint, self.outer_joint)
-
     def force(self, front_force, rear_force):
+        if (self.front_unit_moment_vector is None
+                or self.rear_unit_moment_vector is None):
+            raise RuntimeError("Unit Moment Vector not built")
+
         self.front_link_force = front_force.squeeze()
         self.rear_link_force = rear_force.squeeze()
 
@@ -195,6 +164,20 @@ class Axle:
         self.pushrod.print_forces("Pushrod")
         self.tierod.print_forces("Tierod")
 
+def unit_moment_vector(p1, p2):
+    p1 = np.array([p1.x, p1.y, p1.z])
+    p2 = np.array([p2.x, p2.y, p2.z])
+
+    vec = p2 - p1
+
+    magnitude = np.linalg.norm(vec)
+    unit_vec = vec / magnitude
+
+    r = p1
+    moment_vec = np.cross(r, unit_vec)
+
+    combined = np.hstack((unit_vec, moment_vec))
+    return combined
 
 # ==========Main Pipeline===========
 class SuspensionGeometry:
@@ -280,28 +263,24 @@ class SuspensionGeometry:
 class StaticSuspensionForces:
 
     def __init__(self,front_contact_patch, front_contact_patch_force,
-                 rear_contact_patch, rear_contact_patch_force):
+                 rear_contact_patch, rear_contact_patch_force, suspension):
 
         self.front_contact_patch = front_contact_patch
         self.front_contact_patch_force = front_contact_patch_force
+        self.suspension = suspension
 
-        self.calculate_suspension_forces(axle_obj = getattr(suspension, "front"),
+        self.calculate_suspension_forces(axle_obj = getattr(self.suspension, "front"),
                                          contact_patch = self.front_contact_patch,
                                          contact_patch_force = self.front_contact_patch_force)
 
         self.rear_contact_patch = rear_contact_patch 
         self.rear_contact_patch_force = rear_contact_patch_force
 
-        self.calculate_suspension_forces(axle_obj = getattr(suspension, "rear"),
+        self.calculate_suspension_forces(axle_obj = getattr(self.suspension, "rear"),
                                          contact_patch = self.rear_contact_patch,
                                          contact_patch_force = self.rear_contact_patch_force)
 
     def calculate_suspension_forces(self,axle_obj,contact_patch,contact_patch_force):
-
-        axle_obj.upper_wishbone.build_unit_moment_vector()
-        axle_obj.lower_wishbone.build_unit_moment_vector()
-        axle_obj.pushrod.build_unit_moment_vector()
-        axle_obj.tierod.build_unit_moment_vector()
 
         # Build base coefficient matrix (6x6)
         A_base = np.stack((axle_obj.lower_wishbone.front_unit_moment_vector,
@@ -367,7 +346,7 @@ rear_contact_patch_force = np.array(
             [[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4], [0, 1000, 0]])
 
 StaticSuspensionForces(front_contact_patch, front_contact_patch_force,
-                 rear_contact_patch, rear_contact_patch_force)
+                 rear_contact_patch, rear_contact_patch_force,suspension)
 
 suspension.print_all_geometry()
 suspension.print_all_forces()
