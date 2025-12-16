@@ -42,7 +42,6 @@ def test_static_equilibrium(simple_axle):
 
     FOut, FIn = calculate_suspension_forces(simple_axle,contact_patch,contact_forces)
 
-    print("FOut",FOut)
     # Build unit vectors for links
     A = build_unit_moment_matrix(simple_axle)
 

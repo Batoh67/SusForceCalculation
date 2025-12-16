@@ -346,18 +346,23 @@ def build_unit_moment_matrix(axle_obj):
                        axle_obj.tierod.unit_moment_vector), axis=1)
     return A_base
 
-file_path = "C:/Users/pc/Downloads/HAFO24_v19_DECOUPLE_acc_steering (1).shk"
-suspension = SuspensionGeometry(file_path)
-front_contact_patch = np.array([0, 600, -200])
-front_contact_patch_force = np.array(
-            [[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4], [0, 1000, 0]])  # [0,-1560,1874]
 
-rear_contact_patch = np.array([1530, 600, -200])
-rear_contact_patch_force = np.array(
-            [[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4], [0, 1000, 0]])
+if __name__ == "__main__":
 
-StaticSuspensionForces(front_contact_patch, front_contact_patch_force,
-                 rear_contact_patch, rear_contact_patch_force,suspension)
+    file_path = "C:/Users/pc/Downloads/HAFO24_v19_DECOUPLE_acc_steering (1).shk"
 
-suspension.print_all_geometry()
-suspension.print_all_forces()
+    suspension = SuspensionGeometry(file_path)
+
+    front_contact_patch = np.array([0, 600, -200])
+    front_contact_patch_force = np.array(
+                [[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4], [0, 1000, 0]])  # [0,-1560,1874]
+
+    rear_contact_patch = np.array([1530, 600, -200])
+    rear_contact_patch_force = np.array(
+                [[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4]])
+
+    StaticSuspensionForces(front_contact_patch, front_contact_patch_force,
+                     rear_contact_patch, rear_contact_patch_force,suspension)
+
+    suspension.print_all_geometry()
+    suspension.print_all_forces()
