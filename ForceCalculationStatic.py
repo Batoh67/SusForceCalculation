@@ -335,7 +335,6 @@ def calculate_suspension_forces(axle_obj,contact_patch,contact_patch_force):
     FIn = FIn[..., np.newaxis]
 
     FOut = np.linalg.solve(A, FIn)
-
     return FOut,FIn
 
 def build_unit_moment_matrix(axle_obj):

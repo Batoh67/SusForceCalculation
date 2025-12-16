@@ -42,7 +42,7 @@ def test_static_equilibrium(simple_axle):
 
     FOut, FIn = calculate_suspension_forces(simple_axle,contact_patch,contact_forces)
 
-    # print(FOut)
+    print("FOut",FOut)
     # Build unit vectors for links
     A = build_unit_moment_matrix(simple_axle)
 
@@ -57,23 +57,16 @@ def test_static_equilibrium(simple_axle):
     total_link_force = link_forces.sum(axis=1)
     # print(total_link_force)
     total_force = total_link_force + contact_forces
-    print(total_force)
     assert np.allclose(total_force, 0.0, atol=1e-6)
 
-    # ----- MOMENT EQUILIBRIUM -----
-    link_moments = np.cross(
-        np.array([
-            simple_axle.lower_wishbone.front.as_array(),
-            simple_axle.lower.rear.as_array(),
-            simple_axle.upper.front.as_array(),
-            simple_axle.upper.rear.as_array(),
-            simple_axle.pushrod.inside.as_array(),
-            simple_axle.tierod.inside.as_array(),
-        ]),
-        unit_vectors
-    )
+    moment_vectors = A[3:, :].T  # (6, 3)
 
-    total_link_moment = (link_moments[None, :, :] * FOut[:, :, None]).sum(axis=1)
+    # Rebuild link force vectors
+    link_moments = FOut * moment_vectors[None, :, :]
+
+    # ----- MOMENT EQUILIBRIUM -----
+    total_link_moment = link_moments.sum(axis=1)
+
     contact_moment = np.cross(contact_patch, contact_forces)
 
     assert np.allclose(total_link_moment + contact_moment, 0.0, atol=1e-6)
