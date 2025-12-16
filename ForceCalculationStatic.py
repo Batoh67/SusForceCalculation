@@ -269,71 +269,83 @@ class StaticSuspensionForces:
         self.front_contact_patch_force = front_contact_patch_force
         self.suspension = suspension
 
-        self.calculate_suspension_forces(axle_obj = getattr(self.suspension, "front"),
-                                         contact_patch = self.front_contact_patch,
-                                         contact_patch_force = self.front_contact_patch_force)
+        self.front_FOut, self.front_FIn = (
+            calculate_suspension_forces(axle_obj = getattr(self.suspension, "front"),
+                                        contact_patch = self.front_contact_patch,
+                                        contact_patch_force = self.front_contact_patch_force))
+
+
 
         self.rear_contact_patch = rear_contact_patch 
         self.rear_contact_patch_force = rear_contact_patch_force
 
-        self.calculate_suspension_forces(axle_obj = getattr(self.suspension, "rear"),
-                                         contact_patch = self.rear_contact_patch,
-                                         contact_patch_force = self.rear_contact_patch_force)
+        self.rear_FOut, self.rear_FIn = (
+            calculate_suspension_forces(axle_obj = getattr(self.suspension, "rear"),
+                                        contact_patch = self.rear_contact_patch,
+                                        contact_patch_force = self.rear_contact_patch_force))
 
-    def calculate_suspension_forces(self,axle_obj,contact_patch,contact_patch_force):
 
-        # Build base coefficient matrix (6x6)
-        A_base = np.stack((axle_obj.lower_wishbone.front_unit_moment_vector,
-                           axle_obj.lower_wishbone.rear_unit_moment_vector,
-                           axle_obj.upper_wishbone.front_unit_moment_vector,
-                           axle_obj.upper_wishbone.rear_unit_moment_vector,
-                           axle_obj.pushrod.unit_moment_vector,
-                           axle_obj.tierod.unit_moment_vector), axis=1)
 
-        # Determine number of force cases from input
-        n_cases = contact_patch_force.shape[0]
-
-        # Dynamically replicate A to match number of force cases
-        A = np.tile(A_base[np.newaxis, :, :], (n_cases, 1, 1))
-
-        def calculate_input_moment():
-            Fx_vec = np.stack([contact_patch_force[:, 0],
-                               np.zeros_like(contact_patch_force[:, 0]),
-                               np.zeros_like(contact_patch_force[:, 0])], axis=1)
-
-            Fy_vec = np.stack([np.zeros_like(contact_patch_force[:, 1]),
-                               contact_patch_force[:, 1],
-                               np.zeros_like(contact_patch_force[:, 1])], axis=1)
-
-            Fz_vec = np.stack([np.zeros_like(contact_patch_force[:, 2]),
-                               np.zeros_like(contact_patch_force[:, 2]),
-                               contact_patch_force[:, 2]], axis=1)
-
-            MFx = np.cross(contact_patch, Fx_vec)
-            MFy = np.cross(contact_patch, Fy_vec)
-            MFz = np.cross(contact_patch, Fz_vec)
-
-            M_total = MFx + MFy + MFz
-            Mx, My, Mz = M_total[:, 0], M_total[:, 1], M_total[:, 2]
-            return Mx, My, Mz
-
-        Mx, My, Mz = calculate_input_moment()
-
-        FIn = np.array([-contact_patch_force[:, 0],
-                        -contact_patch_force[:, 1],
-                        -contact_patch_force[:, 2], -Mx, -My, -Mz]).T
-        self.FIn = FIn[..., np.newaxis]
-
-        FOut = np.linalg.solve(A, self.FIn)
-        self.FOut = FOut.squeeze()
-
-        def save_forces_to_members():
+        def save_forces_to_members(axle_obj,FOut):
             axle_obj.lower_wishbone.force(FOut[:, 0], FOut[:, 1])
             axle_obj.upper_wishbone.force(FOut[:, 2], FOut[:, 3])
             axle_obj.pushrod.force(FOut[:, 4])
             axle_obj.tierod.force(FOut[:, 5])
 
-        save_forces_to_members()
+        save_forces_to_members(getattr(self.suspension, "front"), self.front_FOut)
+        save_forces_to_members(getattr(self.suspension, "rear"), self.rear_FOut)
+
+def calculate_suspension_forces(axle_obj,contact_patch,contact_patch_force):
+
+    # Build base coefficient matrix (6x6)
+    A_base = build_unit_moment_matrix(axle_obj)
+
+    # Determine number of force cases from input
+    n_cases = contact_patch_force.shape[0]
+
+    # Dynamically replicate A to match number of force cases
+    A = np.tile(A_base[np.newaxis, :, :], (n_cases, 1, 1))
+
+    def calculate_input_moment():
+        Fx_vec = np.stack([contact_patch_force[:, 0],
+                           np.zeros_like(contact_patch_force[:, 0]),
+                           np.zeros_like(contact_patch_force[:, 0])], axis=1)
+
+        Fy_vec = np.stack([np.zeros_like(contact_patch_force[:, 1]),
+                           contact_patch_force[:, 1],
+                           np.zeros_like(contact_patch_force[:, 1])], axis=1)
+
+        Fz_vec = np.stack([np.zeros_like(contact_patch_force[:, 2]),
+                           np.zeros_like(contact_patch_force[:, 2]),
+                           contact_patch_force[:, 2]], axis=1)
+
+        MFx = np.cross(contact_patch, Fx_vec)
+        MFy = np.cross(contact_patch, Fy_vec)
+        MFz = np.cross(contact_patch, Fz_vec)
+
+        M_total = MFx + MFy + MFz
+        Mx, My, Mz = M_total[:, 0], M_total[:, 1], M_total[:, 2]
+        return Mx, My, Mz
+
+    Mx, My, Mz = calculate_input_moment()
+
+    FIn = np.array([-contact_patch_force[:, 0],
+                    -contact_patch_force[:, 1],
+                    -contact_patch_force[:, 2], -Mx, -My, -Mz]).T
+    FIn = FIn[..., np.newaxis]
+
+    FOut = np.linalg.solve(A, FIn)
+
+    return FOut,FIn
+
+def build_unit_moment_matrix(axle_obj):
+    A_base = np.stack((axle_obj.lower_wishbone.front_unit_moment_vector,
+                       axle_obj.lower_wishbone.rear_unit_moment_vector,
+                       axle_obj.upper_wishbone.front_unit_moment_vector,
+                       axle_obj.upper_wishbone.rear_unit_moment_vector,
+                       axle_obj.pushrod.unit_moment_vector,
+                       axle_obj.tierod.unit_moment_vector), axis=1)
+    return A_base
 
 file_path = "C:/Users/pc/Downloads/HAFO24_v19_DECOUPLE_acc_steering (1).shk"
 suspension = SuspensionGeometry(file_path)
