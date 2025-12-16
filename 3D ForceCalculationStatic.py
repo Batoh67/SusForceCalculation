@@ -53,7 +53,7 @@ class TwoPointLink:  # Pushrod, TieRod
 
         self.unit_moment_vector = unit_moment_vector(self.inside_joint, self.outside_joint)
 
-    def print_joints(self, name: str = "Wishbone") -> None:
+    def print_joints(self, name: str = "TwoPointLink") -> None:
         """Print all joint coordinates."""
         print(f"{name} Joint Coordinates:")
         print(f"  Inside Joint: {self.inside_joint}")
@@ -62,17 +62,17 @@ class TwoPointLink:  # Pushrod, TieRod
 
     def force(self, force):
         self.link_force = force.squeeze()
-        # self.link_force_x = self.link_force * self.vec[0]
-        # self.link_force_y = self.link_force * self.vec[1]
-        # self.link_force_z = self.link_force * self.vec[2]
+        self.link_force_x = self.link_force * self.unit_moment_vector[0]
+        self.link_force_y = self.link_force * self.unit_moment_vector[1]
+        self.link_force_z = self.link_force * self.unit_moment_vector[2]
 
-    def print_forces(self, name: str) -> None:
+    def print_forces(self, name: str = "TwoPointLink") -> None:
         """Print all joint coordinates."""
         print(f"{name} Forces:")
-        print(f"Link Force {self.link_force} [N]")
-        # print(f"Link Force X {self.link_force_x} [N]")
-        # print(f"Link Force Y {self.link_force_y} [N]")
-        # print(f"Link Force Z {self.link_force_z} [N]")
+        print(f"Link Force {self.link_force} [N]\n")
+        print(f"Link Force X {self.link_force_x} [N]")
+        print(f"Link Force Y {self.link_force_y} [N]")
+        print(f"Link Force Z {self.link_force_z} [N]\n")
 
 
 class Wishbone:
@@ -137,25 +137,25 @@ class Wishbone:
         print(f"{name} Joint Coordinates:")
         print(f"  Front Joint: {self.front_joint}")
         print(f"  Rear Joint:  {self.rear_joint}")
-        print(f"  Outer Joint: {self.outer_joint}")
+        print(f"  Outer Joint: {self.outer_joint}\n")
         print(f"  Front Unit Moment Vector: {self.front_unit_moment_vector}")
-        print(f"  Rear Unit Moment Vector: {self.rear_unit_moment_vector}")
+        print(f"  Rear Unit Moment Vector: {self.rear_unit_moment_vector}\n")
 
     def print_forces(self, name: str = "Wishbone") -> None:
         """Print all joint coordinates."""
         print(f"{name} Forces:")
-        print(f"  Front Link Force {self.front_link_force} [N]")
+        print(f"  Front Link Force {self.front_link_force} [N]\n")
         print(f"  Front Link Force X {self.front_link_force_x} [N]")
         print(f"  Front Link Force Y {self.front_link_force_y} [N]")
-        print(f"  Front Link Force Z {self.front_link_force_z} [N]")
-        print(f"  Rear Link Force {self.rear_link_force} [N]")
+        print(f"  Front Link Force Z {self.front_link_force_z} [N]\n")
+        print(f"  Rear Link Force {self.rear_link_force} [N]\n")
         print(f"  Rear Link Force X {self.rear_link_force_x} [N]")
         print(f"  Rear Link Force Y {self.rear_link_force_y} [N]")
-        print(f"  Rear Link Force Z {self.rear_link_force_z} [N]")
+        print(f"  Rear Link Force Z {self.rear_link_force_z} [N]\n")
 
     def get_all_joints(self) -> Tuple[Joint, Joint, Joint]:
         """Return all joints as a tuple."""
-        return (self.front_joint, self.rear_joint, self.outer_joint)
+        return self.front_joint, self.rear_joint, self.outer_joint
 
 
 class Upright:
@@ -167,44 +167,38 @@ class Upright:
         """Print all joint coordinates."""
         print(f"{name} Joint Coordinates:")
         print(f"  Upper Joint: {self.upper_outer_joint}")
-        print(f"  Lower Joint:  {self.lower_outer_joint}")
+        print(f"  Lower Joint:  {self.lower_outer_joint}\n")
 
 
-class Front:
+class Axle:
     """Represents front suspension geometry."""
 
-    def __init__(self, upper_wishbone: Wishbone, lower_wishbone: Wishbone, pushrod: TwoPointLink, tierod: TwoPointLink,
-                 end):
+    def __init__(self, upper_wishbone: Wishbone, lower_wishbone: Wishbone,
+                 pushrod: TwoPointLink, tierod: TwoPointLink,
+                 name: str = "Axle"):
         self.upper_wishbone = upper_wishbone
         self.lower_wishbone = lower_wishbone
         self.pushrod = pushrod
         self.tierod = tierod
         # upright = Upright(upper_wishbone.outer_joint,lower_wishbone.outer_joint)
         self.upright = Upright(upper_wishbone.outer_joint, lower_wishbone.outer_joint)
-        self.end = end
+        self.name = name
 
     def print_geometry(self) -> None:
         """Print complete front suspension geometry."""
-        print("=== Front Suspension Geometry ===")
+        print(f"=== {self.name} Suspension Geometry ===")
         self.upper_wishbone.print_joints("Upper Wishbone")
-        print()
         self.lower_wishbone.print_joints("Lower Wishbone")
-        print()
         self.upright.print_joints("Upright")
-        print()
         self.pushrod.print_joints("Pushrod")
-        print()
         self.tierod.print_joints("Tierod")
 
     def print_forces(self) -> None:
         """Print complete front suspension geometry."""
-        print(f"=== {self.end} Suspension Forces ===")
+        print(f"=== {self.name} Suspension Forces ===")
         self.upper_wishbone.print_forces("Upper Wishbone")
-        print()
         self.lower_wishbone.print_forces("Lower Wishbone")
-        print()
         self.pushrod.print_forces("Pushrod")
-        print()
         self.tierod.print_forces("Tierod")
 
 
@@ -247,12 +241,12 @@ class SuspensionGeometry:
             return upper_wishbone, lower_wishbone, pushrod, tierod
         # Build front suspension
         geometry = load_geometry(frontend_start_line)
-        self.front = Front(*geometry, "Front")
+        self.front = Axle(*geometry, "Front")
 
 
         # Build front suspension
         geometry = load_geometry(rearend_start_line)
-        self.rear = Front(*geometry, "Rear")
+        self.rear = Axle(*geometry, "Rear")
 
     def _find_suspension_line_numbers(self):
         """Find line numbers for FRONT and REAR suspension sections."""
@@ -309,13 +303,6 @@ class StaticSuspensionForces:
                                          contact_patch_force = self.rear_contact_patch_force)
 
     def calculate_suspension_forces(self,axle_obj,contact_patch,contact_patch_force):
-        # Front
-        #contact_patch = np.array([0, 600, -200])
-
-        # +x: points to the rear of vehicle | +y: points to the right of vehicle | +z: points upwards
-        #contact_patch_force = np.array(
-            #[[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4], [0, 1000, 0]])  # [0,-1560,1874]
-
 
         axle_obj.upper_wishbone.build_unit_moment_vector()
         axle_obj.lower_wishbone.build_unit_moment_vector()
