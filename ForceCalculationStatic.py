@@ -1,5 +1,6 @@
 from typing import Tuple
 import numpy as np
+from pygments.lexer import combined
 
 
 # ==========Geometry===========
@@ -40,7 +41,7 @@ class TwoPointLink:  # Pushrod, TieRod
         print(f"  Outside Joint:  {self.outside_joint}\n")
         print(f"  Unit Moment Vector: {self.unit_moment_vector}\n")
 
-    def force(self, force):
+    def force(self, force: np.ndarray) -> None:
         if self.unit_moment_vector is None:
             raise RuntimeError("Unit Moment Vector not built")
 
@@ -74,7 +75,7 @@ class Wishbone:
         self.front_comp_forces = None
         self.rear_comp_forces = None
 
-    def force(self, front_force, rear_force):
+    def force(self, front_force: np.ndarray, rear_force: np.ndarray) -> None:
         if (self.front_unit_moment_vector is None
                 or self.rear_unit_moment_vector is None):
             raise RuntimeError("Unit Moment Vector not built")
@@ -286,7 +287,7 @@ class StaticSuspensionForces:
 
 
 
-        def save_forces_to_members(axle_obj,FOut):
+        def save_forces_to_members(axle_obj,FOut) -> None:
             axle_obj.lower_wishbone.force(FOut[:, 0], FOut[:, 1])
             axle_obj.upper_wishbone.force(FOut[:, 2], FOut[:, 3])
             axle_obj.pushrod.force(FOut[:, 4])
