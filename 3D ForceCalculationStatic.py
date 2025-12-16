@@ -31,9 +31,7 @@ class TwoPointLink:  # Pushrod, TieRod
 
         self.link_force = None
 
-        self.link_force_x = None
-        self.link_force_y = None
-        self.link_force_z = None
+        self.comp_forces = None
 
     def build_unit_moment_vector(self):
         def unit_moment_vector(p1, p2):
@@ -57,22 +55,22 @@ class TwoPointLink:  # Pushrod, TieRod
         """Print all joint coordinates."""
         print(f"{name} Joint Coordinates:")
         print(f"  Inside Joint: {self.inside_joint}")
-        print(f"  Outside Joint:  {self.outside_joint}")
-        print(f"  Unit Moment Vector: {self.unit_moment_vector}")
+        print(f"  Outside Joint:  {self.outside_joint}\n")
+        print(f"  Unit Moment Vector: {self.unit_moment_vector}\n")
 
     def force(self, force):
         self.link_force = force.squeeze()
-        self.link_force_x = self.link_force * self.unit_moment_vector[0]
-        self.link_force_y = self.link_force * self.unit_moment_vector[1]
-        self.link_force_z = self.link_force * self.unit_moment_vector[2]
+
+        self.comp_forces = self.link_force[:, None] * self.unit_moment_vector[None, 0:3]
 
     def print_forces(self, name: str = "TwoPointLink") -> None:
         """Print all joint coordinates."""
         print(f"{name} Forces:")
+        fx, fy, fz = self.comp_forces.T
         print(f"Link Force {self.link_force} [N]\n")
-        print(f"Link Force X {self.link_force_x} [N]")
-        print(f"Link Force Y {self.link_force_y} [N]")
-        print(f"Link Force Z {self.link_force_z} [N]\n")
+        print(f"Link Force X {fx} [N]")
+        print(f"Link Force Y {fy} [N]")
+        print(f"Link Force Z {fz} [N]\n")
 
 
 class Wishbone:
@@ -89,23 +87,18 @@ class Wishbone:
         self.front_link_force = None
         self.rear_link_force = None
 
-        self.front_link_force_x = None
-        self.front_link_force_y = None
-        self.front_link_force_z = None
-
-        self.rear_link_force_x = None
-        self.rear_link_force_y = None
-        self.rear_link_force_z = None
+        self.front_comp_forces = None
+        self.rear_comp_forces = None
 
     def build_unit_moment_vector(self):
         def unit_moment_vector(p1, p2):
             p1 = np.array([p1.x, p1.y, p1.z])
             p2 = np.array([p2.x, p2.y, p2.z])
 
-            self.vec = p2 - p1
+            vec = p2 - p1
 
-            magnitude = np.linalg.norm(self.vec)
-            unit_vec = self.vec / magnitude
+            magnitude = np.linalg.norm(vec)
+            unit_vec = vec / magnitude
 
             r = p1
             moment_vec = np.cross(r, unit_vec)
@@ -120,13 +113,11 @@ class Wishbone:
         self.front_link_force = front_force.squeeze()
         self.rear_link_force = rear_force.squeeze()
 
-        self.front_link_force_x = self.front_link_force * self.front_unit_moment_vector[0]
-        self.front_link_force_y = self.front_link_force * self.front_unit_moment_vector[1]
-        self.front_link_force_z = self.front_link_force * self.front_unit_moment_vector[2]
+        self.front_comp_forces = (self.front_link_force[:, None]
+                                  * self.front_unit_moment_vector[None, 0:3])
 
-        self.rear_link_force_x = self.rear_link_force * self.rear_unit_moment_vector[0]
-        self.rear_link_force_y = self.rear_link_force * self.rear_unit_moment_vector[1]
-        self.rear_link_force_z = self.rear_link_force * self.rear_unit_moment_vector[2]
+        self.rear_comp_forces = (self.rear_link_force[:, None]
+                                  * self.rear_unit_moment_vector[None, 0:3])
 
     def __repr__(self) -> str:
         return (f"Wishbone(front={self.front_joint}, "
@@ -145,13 +136,16 @@ class Wishbone:
         """Print all joint coordinates."""
         print(f"{name} Forces:")
         print(f"  Front Link Force {self.front_link_force} [N]\n")
-        print(f"  Front Link Force X {self.front_link_force_x} [N]")
-        print(f"  Front Link Force Y {self.front_link_force_y} [N]")
-        print(f"  Front Link Force Z {self.front_link_force_z} [N]\n")
+        ffx, ffy, ffz = self.front_comp_forces.T
+        print(f"  Front Link Force X {ffx} [N]")
+        print(f"  Front Link Force Y {ffy} [N]")
+        print(f"  Front Link Force Z {ffz} [N]\n")
+
         print(f"  Rear Link Force {self.rear_link_force} [N]\n")
-        print(f"  Rear Link Force X {self.rear_link_force_x} [N]")
-        print(f"  Rear Link Force Y {self.rear_link_force_y} [N]")
-        print(f"  Rear Link Force Z {self.rear_link_force_z} [N]\n")
+        rfx, rfy, rfz = self.rear_comp_forces.T
+        print(f"  Rear Link Force X {rfx} [N]")
+        print(f"  Rear Link Force Y {rfy} [N]")
+        print(f"  Rear Link Force Z {rfz} [N]\n")
 
     def get_all_joints(self) -> Tuple[Joint, Joint, Joint]:
         """Return all joints as a tuple."""
