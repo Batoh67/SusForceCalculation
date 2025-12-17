@@ -17,7 +17,7 @@ it computes internal forces in suspension members (wishbones, pushrods, and tier
 
     suspension = SuspensionGeometry("example.shk")
 
-    #Define contact patch positions [x,y,z]
+    #Define contact patch positions (mm) [x,y,z]
 
     front_contact_patch = np.array([0, 700, -200]) 
 
@@ -53,11 +53,11 @@ it computes internal forces in suspension members (wishbones, pushrods, and tier
 
 For each axle and load case, the solver outputs:
 
-Link axial force[N]
+Suspension Geometry
+
+Axial forces in suspension members [N]
 
 X, Y, Z force components[N]
-
-Compression / tension indication
 
 Convention:
 
