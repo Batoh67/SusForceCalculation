@@ -1,6 +1,5 @@
 import numpy as np
-from pygments.lexer import combined
-
+from Export import export_to_excel
 
 # ==========Geometry===========
 class Joint:
@@ -56,6 +55,7 @@ class TwoPointLink:  # Pushrod, TieRod
         print(f"Link Force X {fx} [N]")
         print(f"Link Force Y {fy} [N]")
         print(f"Link Force Z {fz} [N]\n")
+
 
 class Wishbone:
     """Represents a wishbone made from three joints."""
@@ -382,10 +382,14 @@ if __name__ == "__main__":
                 [[0, -1000, 1000], [1000, 0, 1000], [-1000, 0, 1000]])
 
     # Calculate the forces (static)
-    StaticSuspensionForces(front_contact_patch, front_contact_patch_force,
+    SForces = StaticSuspensionForces(front_contact_patch, front_contact_patch_force,
                      rear_contact_patch, rear_contact_patch_force,suspension)
 
     # Print information
     suspension.print_all_geometry()
     suspension.print_all_forces()
-    #To Do export to .csv
+
+    #Export forces to .csv
+
+    labels = ["LW Front Link", "LW Rear Link","UW Front Link", "UW Rear Link", "Pushrod", "Tierod"]  # first column labels
+    export_to_excel(SForces.front_FOut,SForces.rear_FOut,row_labels=labels)
