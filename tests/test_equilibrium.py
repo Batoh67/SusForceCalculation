@@ -73,7 +73,6 @@ def test_static_equilibrium(simple_axle):
 def test_full_rank(simple_axle):
     A = build_unit_moment_matrix(simple_axle)
     rank = np.linalg.matrix_rank(A)
-    if rank < A.shape[0]:
-        raise ValueError(
-            f"Equilibrium matrix is rank-deficient (rank={rank})"
-        )
+    assert rank == A.shape[0], (
+        f"Equilibrium matrix is rank-deficient (rank={rank})"
+    )
