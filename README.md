@@ -63,3 +63,17 @@ Convention:
 
 Positive force = compression
 Negative force = tension
+
+# Testing
+
+Tests are written using pytest and validate:
+
+Static force equilibrium
+
+Static moment equilibrium
+
+Full-rank equilibrium matrix
+
+Run Tests
+
+    pytest Test.py
