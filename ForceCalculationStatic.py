@@ -1,4 +1,3 @@
-from typing import Tuple
 import numpy as np
 from pygments.lexer import combined
 
@@ -18,12 +17,14 @@ class Joint:
     def __str__(self) -> str:
         return f"({self.x}, {self.y}, {self.z})"
 
-    def get_coordinates(self) -> Tuple[float, float, float]:
+    def get_coordinates(self) -> tuple[float, float, float]:
         """Return coordinates as a tuple."""
         return self.x, self.y, self.z
 
 
 class TwoPointLink:  # Pushrod, TieRod
+    """Represents a link between two joints in suspension geometry."""
+
     def __init__(self, outside_joint: Joint, inside_joint: Joint):
         self.inside_joint = inside_joint
         self.outside_joint = outside_joint
@@ -42,15 +43,13 @@ class TwoPointLink:  # Pushrod, TieRod
         print(f"  Unit Moment Vector: {self.unit_moment_vector}\n")
 
     def force(self, force: np.ndarray) -> None:
-        if self.unit_moment_vector is None:
-            raise RuntimeError("Unit Moment Vector not built")
 
         self.link_force = force.squeeze()
 
         self.comp_forces = self.link_force[:, None] * self.unit_moment_vector[None, 0:3]
 
     def print_forces(self, name: str = "TwoPointLink") -> None:
-        """Print all joint coordinates."""
+        """Print link forces."""
         print(f"{name} Forces:")
         fx, fy, fz = self.comp_forces.T
         print(f"Link Force {self.link_force} [N]\n")
@@ -59,15 +58,18 @@ class TwoPointLink:  # Pushrod, TieRod
         print(f"Link Force Z {fz} [N]\n")
 
 class Wishbone:
-    """Represents a wishbone with three joints."""
+    """Represents a wishbone made from three joints."""
 
     def __init__(self, front_joint: Joint, rear_joint: Joint, outer_joint: Joint):
         self.front_joint = front_joint
         self.rear_joint = rear_joint
         self.outer_joint = outer_joint
 
-        self.front_unit_moment_vector = unit_moment_vector(self.front_joint, self.outer_joint)
-        self.rear_unit_moment_vector = unit_moment_vector(self.rear_joint, self.outer_joint)
+        self.front_unit_moment_vector = unit_moment_vector(self.front_joint,
+                                                           self.outer_joint)
+
+        self.rear_unit_moment_vector = unit_moment_vector(self.rear_joint,
+                                                          self.outer_joint)
 
         self.front_link_force = None
         self.rear_link_force = None
@@ -103,7 +105,7 @@ class Wishbone:
         print(f"  Rear Unit Moment Vector: {self.rear_unit_moment_vector}\n")
 
     def print_forces(self, name: str = "Wishbone") -> None:
-        """Print all joint coordinates."""
+        """Print all link forces."""
         print(f"{name} Forces:")
         print(f"  Front Link Force {self.front_link_force} [N]\n")
         ffx, ffy, ffz = self.front_comp_forces.T
@@ -117,15 +119,20 @@ class Wishbone:
         print(f"  Rear Link Force Y {rfy} [N]")
         print(f"  Rear Link Force Z {rfz} [N]\n")
 
-    def get_all_joints(self) -> Tuple[Joint, Joint, Joint]:
+    def get_all_joints(self) -> tuple[Joint, Joint, Joint]:
         """Return all joints as a tuple."""
         return self.front_joint, self.rear_joint, self.outer_joint
 
 
 class Upright:
     def __init__(self, upper_outer_joint: Joint, lower_outer_joint: Joint):
-        self.upper_outer_joint = Joint(upper_outer_joint.x, upper_outer_joint.y, upper_outer_joint.z)
-        self.lower_outer_joint = Joint(lower_outer_joint.x, lower_outer_joint.y, lower_outer_joint.z)
+        self.upper_outer_joint = Joint(upper_outer_joint.x,
+                                       upper_outer_joint.y,
+                                       upper_outer_joint.z)
+
+        self.lower_outer_joint = Joint(lower_outer_joint.x,
+                                       lower_outer_joint.y,
+                                       lower_outer_joint.z)
 
     def print_joints(self, name: str = "Wishbone") -> None:
         """Print all joint coordinates."""
@@ -135,7 +142,7 @@ class Upright:
 
 
 class Axle:
-    """Represents front suspension geometry."""
+    """Represents front/rear suspension geometry."""
 
     def __init__(self, upper_wishbone: Wishbone, lower_wishbone: Wishbone,
                  pushrod: TwoPointLink, tierod: TwoPointLink,
@@ -144,7 +151,6 @@ class Axle:
         self.lower_wishbone = lower_wishbone
         self.pushrod = pushrod
         self.tierod = tierod
-        # upright = Upright(upper_wishbone.outer_joint,lower_wishbone.outer_joint)
         self.upright = Upright(upper_wishbone.outer_joint, lower_wishbone.outer_joint)
         self.name = name
 
@@ -158,14 +164,15 @@ class Axle:
         self.tierod.print_joints("Tierod")
 
     def print_forces(self) -> None:
-        """Print complete front suspension geometry."""
+        """Print complete front suspension forces."""
         print(f"=== {self.name} Suspension Forces ===")
         self.upper_wishbone.print_forces("Upper Wishbone")
         self.lower_wishbone.print_forces("Lower Wishbone")
         self.pushrod.print_forces("Pushrod")
         self.tierod.print_forces("Tierod")
 
-def unit_moment_vector(p1, p2):
+def unit_moment_vector(p1: Joint, p2: Joint) -> np.ndarray:
+    """Create a unit moment vector from two points."""
     p1 = np.array([p1.x, p1.y, p1.z])
     p2 = np.array([p2.x, p2.y, p2.z])
 
@@ -182,7 +189,7 @@ def unit_moment_vector(p1, p2):
 
 # ==========Main Pipeline===========
 class SuspensionGeometry:
-
+    """Loads and builds suspension geometry."""
     def __init__(self, file):
         self.file_path = file
         with open(self.file_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -190,7 +197,8 @@ class SuspensionGeometry:
 
         frontend_start_line, rearend_start_line = self._find_suspension_line_numbers()
 
-        def load_geometry(start_line):
+        def load_geometry(start_line: int) \
+                -> tuple[Wishbone, Wishbone, TwoPointLink, TwoPointLink]:
 
             LAYOUT = {
                 "lower_wishbone": 3,
@@ -217,12 +225,12 @@ class SuspensionGeometry:
             tierod = TwoPointLink(*joints["tierod"])
 
             return upper_wishbone, lower_wishbone, pushrod, tierod
+
         # Build front suspension
         geometry = load_geometry(frontend_start_line)
         self.front = Axle(*geometry, "Front")
 
-
-        # Build front suspension
+        # Build rear suspension
         geometry = load_geometry(rearend_start_line)
         self.rear = Axle(*geometry, "Rear")
 
@@ -248,7 +256,7 @@ class SuspensionGeometry:
         return Joint(x, y, z)
 
     def print_all_geometry(self) -> None:
-        """Print complete suspension information."""
+        """Print geometry suspension information."""
         self.front.print_geometry()
         self.rear.print_geometry()
 
@@ -262,7 +270,8 @@ class SuspensionGeometry:
 
 
 class StaticSuspensionForces:
-
+    """Based on suspension geometry and input position and forces,
+       calculates forces in suspension members."""
     def __init__(self,front_contact_patch, front_contact_patch_force,
                  rear_contact_patch, rear_contact_patch_force, suspension):
 
@@ -296,9 +305,12 @@ class StaticSuspensionForces:
         save_forces_to_members(getattr(self.suspension, "front"), self.front_FOut)
         save_forces_to_members(getattr(self.suspension, "rear"), self.rear_FOut)
 
-def calculate_suspension_forces(axle_obj,contact_patch,contact_patch_force):
+def calculate_suspension_forces(axle_obj: Axle,
+                                contact_patch: np.ndarray ,
+                                contact_patch_force: np.ndarray
+                                ) -> tuple[np.ndarray,np.ndarray]:
 
-    # Build base coefficient matrix (6x6)
+    # Build unit moment matrix
     A_base = build_unit_moment_matrix(axle_obj)
 
     # Determine number of force cases from input
@@ -308,6 +320,7 @@ def calculate_suspension_forces(axle_obj,contact_patch,contact_patch_force):
     A = np.tile(A_base[np.newaxis, :, :], (n_cases, 1, 1))
 
     def calculate_input_moment():
+        """Calculate input moment around origin."""
         Fx_vec = np.stack([contact_patch_force[:, 0],
                            np.zeros_like(contact_patch_force[:, 0]),
                            np.zeros_like(contact_patch_force[:, 0])], axis=1)
@@ -338,7 +351,8 @@ def calculate_suspension_forces(axle_obj,contact_patch,contact_patch_force):
     FOut = np.linalg.solve(A, FIn)
     return FOut,FIn
 
-def build_unit_moment_matrix(axle_obj):
+def build_unit_moment_matrix(axle_obj: Axle) -> np.ndarray:
+
     A_base = np.stack((axle_obj.lower_wishbone.front_unit_moment_vector,
                        axle_obj.lower_wishbone.rear_unit_moment_vector,
                        axle_obj.upper_wishbone.front_unit_moment_vector,
@@ -350,20 +364,28 @@ def build_unit_moment_matrix(axle_obj):
 
 if __name__ == "__main__":
 
-    file_path = "C:/Users/pc/Downloads/HAFO24_v19_DECOUPLE_acc_steering (1).shk"
+    # Path to lotus geometry save
+    file_path = "example.shk"
 
     suspension = SuspensionGeometry(file_path)
 
+    # Set the front contact patch position (origin of input forces)
     front_contact_patch = np.array([0, 600, -200])
+    # Set front input forces
     front_contact_patch_force = np.array(
                 [[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4], [0, 1000, 0]])  # [0,-1560,1874]
 
+    # Set the rear contact patch position (origin of input forces)
     rear_contact_patch = np.array([1530, 600, -200])
+    # Set rear input forces
     rear_contact_patch_force = np.array(
                 [[0, -3421.4, 4109.7], [2504.5, 0, 3710.3], [-1534.6, 0, 2273.4]])
 
+    # Calculate the forces (static)
     StaticSuspensionForces(front_contact_patch, front_contact_patch_force,
                      rear_contact_patch, rear_contact_patch_force,suspension)
 
+    # Print information
     suspension.print_all_geometry()
     suspension.print_all_forces()
+    #To Do export to .csv
