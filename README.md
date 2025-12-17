@@ -7,11 +7,12 @@ it computes internal forces in suspension members (wishbones, pushrods, and tier
 # Usage Example
 
     import numpy as np
-
+    
     from ForceCalculationStatic import (
         SuspensionGeometry,
         StaticSuspensionForces
     )
+    from Export import export_to_excel
 
     #Load suspension geometry
 
@@ -35,19 +36,24 @@ it computes internal forces in suspension members (wishbones, pushrods, and tier
         [1000, -2000, 2000],
     ])
 
-    #Run static force calculation
-    
-    StaticSuspensionForces(
+    # Run static force calculation
+    SForces = StaticSuspensionForces(
         front_contact_patch,
         front_forces,
         rear_contact_patch,
         rear_forces,
         suspension
     )
-
-    #Print results
+    
+    # Print results
     suspension.print_all_geometry()
     suspension.print_all_forces()
+    
+    #Export forces to .xlsx
+    labels = ["LW Front Link", "LW Rear Link","UW Front Link",
+                "UW Rear Link", "Pushrod", "Tierod"]
+    export_to_excel(SForces.front_FOut, SForces.rear_FOut,
+                    row_labels=labels, filename="usage.xlsx")
 
 # Output
 
@@ -59,11 +65,10 @@ Axial forces in suspension members [N]
 
 X, Y, Z force components[N]
 
-Convention:
-
-Positive force = compression
+Convention: Positive force = compression
 Negative force = tension
 
+.xlsx file
 # Testing
 
 Tests are written using pytest and validate:
@@ -77,3 +82,20 @@ Full-rank equilibrium matrix
 Run Tests
 
     pytest Test.py
+
+# Dependencies
+
+Python 3.9+
+
+NumPy
+
+Pytest (for testing)
+
+pandas (for exporting to excel)
+# Limitations
+
+Static analysis only (no dynamics or compliance)
+
+Assumes rigid links
+
+Fixed file format for geometry input
