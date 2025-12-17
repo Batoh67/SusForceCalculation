@@ -390,6 +390,6 @@ if __name__ == "__main__":
     suspension.print_all_forces()
 
     #Export forces to .csv
-
-    labels = ["LW Front Link", "LW Rear Link","UW Front Link", "UW Rear Link", "Pushrod", "Tierod"]  # first column labels
+    labels = ["LW Front Link", "LW Rear Link","UW Front Link",
+              "UW Rear Link", "Pushrod", "Tierod"]
     export_to_excel(SForces.front_FOut,SForces.rear_FOut,row_labels=labels)
