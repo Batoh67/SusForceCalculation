@@ -369,15 +369,15 @@ if __name__ == "__main__":
 
     suspension = SuspensionGeometry(file_path)
 
-    # Set the front contact patch position (origin of input forces)
+    # Set the front contact patch position (origin of input forces)(mm)[x,y,z]
     front_contact_patch = np.array([0, 700, -200])
-    # Set front input forces
+    # Set front input forces (N) [x,y,z]
     front_contact_patch_force = np.array(
                 [[0, -1000, 1000], [1000, 0, 1000], [-1000, 0, 1000], [0, 1000, 0]])  # [0,-1560,1874]
 
-    # Set the rear contact patch position (origin of input forces)
+    # Set the rear contact patch position (origin of input forces)(mm)[x,y,z]
     rear_contact_patch = np.array([1600, 700, -200])
-    # Set rear input forces
+    # Set rear input forces (N) [x,y,z]
     rear_contact_patch_force = np.array(
                 [[0, -1000, 1000], [1000, 0, 1000], [-1000, 0, 1000]])
 
