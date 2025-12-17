@@ -6,12 +6,6 @@ def export_to_excel(front_array, rear_array=None, row_labels=None, filename="out
     """
     Export one or two NumPy ndarrays to Excel with transposed data and optional row labels.
     The front_array is written to the default sheet, rear_array (if given) is written to a sheet named 'Rear'.
-
-    Parameters:
-        front_array (np.ndarray): First dataset (any shape).
-        rear_array (np.ndarray, optional): Second dataset to go to 'Rear' sheet.
-        row_labels (list of str, optional): Labels for the first column.
-        filename (str): Output Excel file name.
     """
 
     def prepare_data(array, labels):
